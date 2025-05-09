@@ -1,0 +1,16 @@
+
+  .console-title {
+  position: absolute;
+  bottom: 200px; 
+  
+  
+  background: #3498db;
+  padding: 4px 12px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 10;
+  }
+  
+  

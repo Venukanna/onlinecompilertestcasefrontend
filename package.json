@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@radix-ui/react-select": "^2.2.2",
     "@radix-ui/react-slot": "^1.2.0",
     "autoprefixer": "^10.4.21",
@@ -17,6 +18,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.503.0",
     "postcss": "^8.5.3",
+    "prompt-sync": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.2.0",

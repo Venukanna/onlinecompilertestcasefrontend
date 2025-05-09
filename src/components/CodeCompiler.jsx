@@ -1,556 +1,838 @@
 import { useState, useEffect } from "react";
-import "../styles/CodeCompiler.css"; // Assuming you have a CSS file for styles
+import "../styles/CodeCompiler.css";
+import ReactSandpackPlayground from "./ReactSandpackPlayground";
 
 const LANGUAGES = [
-  { id: 50, name: "C", icon: "C" },
-  { id: 54, name: "C++", icon: "C++" },
-  { id: 71, name: "Python", icon: "Py" },
-  { id: 62, name: "Java", icon: "Ja" },
-  { id: 63, name: "JavaScript", icon: "JS" },
-  { id: 1, name: "HTML", icon: "HTML" },
+  { id: "java", name: "Java", icon: "Ja" },
+  { id: "python", name: "Python", icon: "Py" },
+  { id: "c", name: "C", icon: "C" },
+  { id: "cpp", name: "C++", icon: "C++" },
+  { id: "javascript", name: "JavaScript", icon: "JS" },
+  { id: "html", name: "HTML", icon: "HTML" },
+  { id: "react", name: "React", icon: "⚛️" },
 ];
 
-export default function CodeCompiler() {
-  const [code, setCode] = useState("");
-  const [language, setLanguage] = useState(62); // Default to Java
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-  const [theme, setTheme] = useState("light");
-  const [outputStatus, setOutputStatus] = useState("idle");
-  const [token, setToken] = useState("");
-  const [activeFile, setActiveFile] = useState("html");
-  const [isLoading, setIsLoading] = useState(false);
-  const [htmlCode, setHtmlCode] = useState(
-    `<!DOCTYPE html>
+const REACT_FILES = {
+  "App.js": `export default function App() {
+  return <h1>Hello world</h1>
+}`,
+  "index.js": `import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+createRoot(document.getElementById("root")).render(<App />);`,
+  "package.json": `{
+  "name": "react-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}`,
+  "styles.css": `.title {
+  color: #2c3e50;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}`,
+  "index.html": `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>React Output</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`,
+};
+
+const REACT_FILE_ORDER = ["App.js", "index.js", "package.json", "styles.css", "index.html"];
+
+const DEFAULT_CODES = {
+  java: `public class Main {
+  public static void main(String[] args) {
+    System.out.println("Hello world");
+  }
+}`,
+  python: `print("Hello world")`,
+  c: `#include <stdio.h>
+int main() {
+  printf("Hello world\\n");
+  return 0;
+}`,
+  cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+  cout << "Hello world" << endl;
+  return 0;
+}`,
+  javascript: `console.log("Hello world");`,
+  html: `<!DOCTYPE html>
 <html>
 <head>
   <title>Hello, World!</title>
   <style>
-    /* CSS will be inserted here */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .title {
+      color: #2c3e50;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <h1 class="title">Hello World!</h1>
   <p id="currentTime"></p>
   <script>
-    // JS will be inserted here
+    document.getElementById('currentTime').textContent =
+      'Current time: ' + new Date().toLocaleTimeString();
   </script>
 </body>
-</html>`
-  );
-  const [cssCode, setCssCode] = useState(
-    `.title {
-  color: #2c3e50;
-  text-align: center;
-  font-family: Arial, sans-serif;
-}`
-  );
-  const [jsCode, setJsCode] = useState(
-    `document.getElementById('currentTime').textContent = 
-  'Current time: ' + new Date().toLocaleTimeString();`
-  );
-  const [validationError, setValidationError] = useState("");
+</html>`,
+  react: REACT_FILES["App.js"],
+};
+
+export default function CodeCompiler() {
+  const [language, setLanguage] = useState("java");
+  const [code, setCode] = useState(DEFAULT_CODES["java"]);
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("Your output will appear here...");
+  const [theme, setTheme] = useState("light");
+  const [activeFile, setActiveFile] = useState("App.js");
+  const [isLoading, setIsLoading] = useState(false);
+  const [htmlCode, setHtmlCode] = useState(DEFAULT_CODES["html"]);
+  const [cssCode, setCssCode] = useState("");
+  const [jsCode, setJsCode] = useState("");
+  const [reactFiles, setReactFiles] = useState({ ...REACT_FILES });
+  const [displayedHtmlOutput, setDisplayedHtmlOutput] = useState("");
+  const [testCases, setTestCases] = useState([{ id: 1, input: "", expected: "" }]);
+  const [testResults, setTestResults] = useState([]);
+  const [activeTab, setActiveTab] = useState("output");
+  const [editorKey, setEditorKey] = useState(0); // Force re-render when language changes
 
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const toggleTheme = (newTheme) => {
-    setTheme(newTheme);
+  useEffect(() => {
+    if (language === "react") {
+      setActiveFile("App.js");
+      setReactFiles({ ...REACT_FILES });
+      setCode(REACT_FILES["App.js"]);
+    } else if (language === "html") {
+      setActiveFile("html");
+      setCode(htmlCode);
+      const styleMatch = htmlCode.match(/<style>([\s\S]*?)<\/style>/);
+      const scriptMatch = htmlCode.match(/<script>([\s\S]*?)<\/script>/);
+      setCssCode(styleMatch ? styleMatch[1] : "");
+      setJsCode(scriptMatch ? scriptMatch[1] : "");
+      setDisplayedHtmlOutput("");
+    } else {
+      setActiveFile(language);
+      setCode(DEFAULT_CODES[language]);
+    }
+    setOutput("Your output will appear here...");
+    setTestResults([]);
+    setEditorKey(prev => prev + 1); // Force editor re-render
+  }, [language]);
+
+  useEffect(() => {
+    if (language === "react" && activeFile) {
+      setCode(reactFiles[activeFile]);
+    } else if (language === "html") {
+      if (activeFile === "html") setCode(htmlCode);
+      if (activeFile === "css") setCode(cssCode);
+      if (activeFile === "js") setCode(jsCode);
+    }
+  }, [activeFile]);
+
+  const detectLanguageMismatch = (code) => {
+    const languagePatterns = {
+      java: [
+        /public\s+class\s+\w+\s*\{/,
+        /public\s+static\s+void\s+main\s*\(String\s*(\[\s*\]\s+\w+|\[\s*\]\s*\[\s*\]\s+\w+)?\)/,
+        /System\.(out|err)\.print/,
+        /import\s+java\./
+      ],
+      python: [
+        /^print\(/,
+        /def\s+\w+\(/,
+        /import\s+\w+/,
+        /:\s*(#.*)?$/,
+        /^\s{4}\w+/,
+        /^[ \t]*\w+\s*=\s*[^;]+$/
+      ],
+      cpp: [
+        /#include\s+<iostream>/,
+        /using\s+namespace\s+std/,
+        /cout\s*<</,
+        /cin\s*>>/,
+        /std::/
+      ],
+      c: [
+        /#include\s+<stdio\.h>/,
+        /printf\s*\(/,
+        /scanf\s*\(/
+      ],
+      javascript: [
+        /console\.log\(/,
+        /function\s+\w+\(/,
+        /=>/,
+        /let\s+\w+/,
+        /const\s+\w+/
+      ]
+    };
+
+    if (language === "cpp") {
+      const cppPatterns = languagePatterns["cpp"];
+      const cPatterns = languagePatterns["c"];
+      const isCpp = cppPatterns.some(p => p.test(code));
+      const isC = cPatterns.some(p => p.test(code));
+
+      // Allow mixed C-style in C++
+      if (!isCpp && isC) {
+        return "c"; // Only return if it’s *clearly* C and not mixed
+      }
+      return null;
+    }
+
+    for (const lang in languagePatterns) {
+      if (lang === language) continue;
+      if (languagePatterns[lang].some(pattern => pattern.test(code))) {
+        return lang;
+      }
+    }
+    return null;
   };
 
-  // Updated language code structure validation rules
+  const formatError = (error, lang) => {
+    if (lang === "java") {
+      if (error.includes("Main method not found in class")) {
+        const classNameMatch = error.match(/Main method not found in class (\w+)/);
+        const className = classNameMatch ? classNameMatch[1] : "YourClass";
+        
+        return `Error: Main method not found in class ${className}, please define the main method as:
+   public static void main(String[] args)
+or a JavaFX application class must extend javafx.application.Application
+
+Example:
+public class ${className} {
+    public static void main(String[] args) {
+        // Your code here
+        System.out.println("Hello, World!");
+    }
+}`;
+      }
+    }
+    
+    // General error formatting
+    const lines = error.split('\n');
+    let formattedError = "";
+    
+    for (const line of lines) {
+      if (line.startsWith("error:")) {
+        formattedError += `Error: ${line.substring(6).trim()}\n`;
+      } else if (line.includes(`.${lang === "python" ? "py" : lang}:`)) {
+        const parts = line.split(':');
+        if (parts.length >= 3) {
+          formattedError += `At ${parts[0]}, line ${parts[1]}:\n`;
+        }
+      } else {
+        formattedError += `${line}\n`;
+      }
+    }
+    
+    return formattedError.trim();
+  };
+
   const languageValidators = {
-    62: code => {
-      const hasMainClass = /class\s+Main\s*\{/.test(code);
-      const hasMainMethod = /public\s+static\s+void\s+main\s*\(/.test(code);
+    java: code => {
+      const mismatchedLang = detectLanguageMismatch(code);
+      if (mismatchedLang) {
+        return { 
+          isValid: false, 
+          message: `This looks like ${mismatchedLang} code. For Java, use:\n` +
+                   `public class Main {\n` +
+                   `  public static void main(String[] args) {\n` +
+                   `    System.out.println("Hello");\n` +
+                   `  }\n` +
+                   `}`
+        };
+      }
       
-      if (!hasMainClass) {
-        return {
-          isValid: false,
-          message: "Hey! For Java code to run properly, please use 'Main' as your class name. Like this: 'public class Main { ... }'"
+      const hasClass = /class\s+\w+\s*\{/.test(code);
+      const hasMainMethod = /public\s+static\s+void\s+main\s*\(String\s*(\[\s*\]\s+\w+|\[\s*\]\s*\[\s*\]\s+\w+)?\)/.test(code);
+      
+      if (!hasClass) {
+        return { 
+          isValid: false, 
+          message: "Java requires a class definition:\n" +
+                  "public class YourClassName {\n" +
+                  "  // Your main method goes here\n" +
+                  "}"
         };
       }
       if (!hasMainMethod) {
-        return {
-          isValid: false,
-          message: "Don't forget to add the main method! Include this in your Main class: 'public static void main(String[] args) { ... }'"
+        return { 
+          isValid: false, 
+          message: "Java requires a main method:\n" +
+                  "public static void main(String[] args) {\n" +
+                  "  // Your code here\n" +
+                  "}"
         };
       }
       return { isValid: true, message: "" };
     },
-    71: code => {
-      const isValid = /def\s+\w+|print\(|import\s+/.test(code) && !/class\s+\w+|public\s+static\s+void\s+main/.test(code);
-      return {
-        isValid,
-        message: isValid ? "" : "This doesn't look like Python code. Try using Python syntax like 'print()', 'def', or 'import' statements."
-      };
-    }, // Python
-    54: code => {
-      const isValid = /#include\s+<|int\s+main\s*\(\)/.test(code) && !/std::/.test(code);
-      return {
-        isValid,
-        message: isValid ? "" : "This doesn't look like C++ code. Try using C++ syntax like '#include' or 'int main()'."
-      };
-    }, // C++
-    50: code => {
-      const isValid = /#include\s+<|int\s+main\s*\(\)/.test(code) && !/std::/.test(code);
-      return {
-        isValid,
-        message: isValid ? "" : "This doesn't look like C code. Try using C syntax like '#include' or 'int main()'."
-      };
-    }, // C
-    63: code => {
-      const isValid = /function\s+\w+|console\.log|let\s+|const\s+|var\s+/.test(code);
-      return {
-        isValid,
-        message: isValid ? "" : "This doesn't look like JavaScript code. Try using JavaScript syntax like 'function', 'console.log', or 'let/const/var'."
-      };
-    }, // JavaScript
-  };
-
-  // Real-time validation effect
-  useEffect(() => {
-    if (language === 1) {
-      setValidationError("");
-      return;
-    }
-    if (!code.trim()) {
-      setValidationError("");
-      return;
-    }
-    const validator = languageValidators[language];
-    if (validator) {
-      const result = validator(code);
-      if (!result.isValid) {
-        setValidationError(result.message);
-      } else {
-        setValidationError("");
-      }
-    } else {
-      setValidationError("This language is not supported. Please select a supported language from the dropdown.");
-    }
-  }, [code, language]);
-
-  const submitCode = async () => {
-    if (validationError) {
-      setOutput(validationError);
-      setOutputStatus("error");
-      return;
-    }
-    if (language === 1) {
-      try {
-        setOutputStatus("running");
-        setIsLoading(true);
-        setOutput("Running HTML code...");
-
-        // Create a complete HTML document with proper script and style tags
-        const fullHtml = `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <title>Profile Card</title>
-            <style>
-              ${cssCode}
-            </style>
-          </head>
-          <body>
-            ${htmlCode}
-            <script>
-              ${jsCode}
-            </script>
-          </body>
-          </html>
-        `;
-
-        setOutput(fullHtml);
-        setOutputStatus("success");
-      } catch (error) {
-        setOutput(`Error: ${error.message}`);
-        setOutputStatus("error");
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    try {
-      setOutputStatus("running");
-      setIsLoading(true);
-      setOutput("Submitting your code...");
-
-      // Check if code matches the selected language
-      const validator = languageValidators[language];
-      if (validator) {
-        const result = validator(code);
-        if (!result.isValid) {
-          setOutput(result.message || "Code does not match the selected language. Please check your code and try again.");
-          setOutputStatus("error");
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Use the code as-is without wrapping in Main class
-      const codeToSubmit = code;
-
-      // UTF-8 encode the source code before base64 encoding
-      const utf8Encode = (str) => {
-        try {
-          return new TextEncoder().encode(str); // Modern browsers
-        } catch (e) {
-          return new TextEncoderLite().encode(str); // Fallback for older browsers
-        }
-      };
-
-      const encodedCode = btoa(String.fromCharCode.apply(null, [...utf8Encode(codeToSubmit)]));
-
-      const request = {
-        source_code: encodedCode,
-        language_id: language,
-        stdin: btoa(input),
-      };
-
-      const response = await fetch("http://localhost:1234/api/judge0/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!data.token) {
-        throw new Error("No submission token received");
-      }
-
-      setToken(data.token);
-      setOutput("Code submitted. Processing...");
-      await checkResult(data.token);
-    } catch (error) {
-      console.error("Submission error:", error);
-      setOutput(`Error: ${error.message}`);
-      setOutputStatus("error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkResult = async (token) => {
-    try {
-      let result;
-      let attempts = 0;
-      const maxAttempts = 15;
-      const delay = 2000;
-
-      while (attempts < maxAttempts) {
-        const response = await fetch(
-          `http://localhost:1234/api/judge0/result/${token}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} when checking result`);
-        }
-
-        result = await response.json();
-        console.log("Polling result:", result);
-
-        // Safely extract output from any possible field
-        const getOutputText = () => {
-          if (!result) return "No result received";
-
-          // Check all possible output fields
-          const outputSources = [
-            result.stdout,
-            result.stderr,
-            result.compile_output,
-            result.message,
-            result.status?.description
-          ];
-
-          // Find the first non-empty output
-          const output = outputSources.find(text => text && text.trim().length > 0);
-
-          // Handle base64 decoding if needed
-          if (output) {
-            try {
-              // Attempt to decode the output using decodeURIComponent and escape
-              return decodeURIComponent(escape(window.atob(output)));
-            } catch (e) {
-              // If decoding fails, return the original output
-              console.error("Base64 decoding error:", e);
-              return output;
-            }
-          }
-
-          return "No output available";
+    python: code => {
+      const mismatchedLang = detectLanguageMismatch(code);
+      if (mismatchedLang) {
+        return { 
+          isValid: false, 
+          message: `This looks like ${mismatchedLang} code. Python uses:\n` +
+                   `- No semicolons\n` +
+                   `- Indentation for blocks\n` +
+                   `- print() function\n` +
+                   `Example:\n` +
+                   `print("Hello")\n` +
+                   `if x > 5:\n` +
+                   `    print("Greater")`
         };
-
-        const outputText = getOutputText();
-
-        // Check if execution is complete
-        if (result.status?.id > 2 || outputText !== "No output available") {
-          setOutput(outputText);
-          setOutputStatus(result.status?.id === 3 ? "success" : "error");
-          return;
-        }
-
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, delay));
       }
+      
+      const hasJavaLikeSyntax = /class\s+\w+|public\s+static\s+void\s+main|System\.out\.print/.test(code);
+      const hasCSyntax = /#include|printf\s*\(|int\s+main\s*\(/.test(code);
+      const hasJSSyntax = /function\s+\w+|console\.log|let\s+|const\s+|var\s+/.test(code);
+      
+      if (hasJavaLikeSyntax || hasCSyntax || hasJSSyntax) {
+        return { 
+          isValid: false, 
+          message: "This doesn't look like Python code. Remember:\n" +
+                  "- No curly braces {}\n" +
+                  "- Indentation defines blocks\n" +
+                  "- print() instead of console.log or System.out.println\n" +
+                  "Example:\n" +
+                  "name = input('Your name: ')\n" +
+                  "print(f'Hello {name}')"
+        };
+      }
+      
+      return { isValid: true, message: "" };
+    },
+    c: code => {
+      const mismatchedLang = detectLanguageMismatch(code);
+      if (mismatchedLang) {
+        return { 
+          isValid: false, 
+          message: `This looks like ${mismatchedLang} code. For C, use:\n` +
+                   `#include <stdio.h>\n` +
+                   `int main() {\n` +
+                   `  printf("Hello\\n");\n` +
+                   `  return 0;\n` +
+                   `}`
+        };
+      }
+      
+      const hasInclude = /#include\s+<.*\.h>/.test(code);
+      const hasMain = /int\s+main\s*\(/.test(code);
+      
+      if (!hasInclude) {
+        return { 
+          isValid: false, 
+          message: "C programs need #include directives:\n" +
+                  "#include <stdio.h>  // For input/output\n" +
+                  "#include <math.h>   // For math functions"
+        };
+      }
+      if (!hasMain) {
+        return { 
+          isValid: false, 
+          message: "C programs need a main function:\n" +
+                  "int main() {\n" +
+                  "  // Your code here\n" +
+                  "  return 0;\n" +
+                  "}"
+        };
+      }
+      return { isValid: true, message: "" };
+    },
+    cpp: code => {
+      const mismatchedLang = detectLanguageMismatch(code);
+      if (mismatchedLang && mismatchedLang !== "cpp") {
+        return {
+          isValid: false,
+          message: `This looks like ${mismatchedLang} code. For C++, use:\n` +
+                   `#include <iostream>\nusing namespace std;\n\nint main() {\n  cout << "Hello";\n  return 0;\n}`
+        };
+      }
+      const hasIostream = /#include\s*<iostream>/.test(code);
+      const hasMain = /int\s+main\s*\(/.test(code);
+      const usesCout = /cout\s*<</.test(code);
 
-      setOutput("Execution timed out after 30 seconds");
-      setOutputStatus("error");
-    } catch (error) {
-      console.error("Result check error:", error);
-      setOutput(`Error: ${error.message}`);
-      setOutputStatus("error");
-    }
+      if (!hasIostream || !hasMain || !usesCout) {
+        return {
+          isValid: true, // Allow more flexibility
+          message: ""
+        };
+      }
+      return { isValid: true, message: "" };
+    },
+    javascript: code => {
+      const mismatchedLang = detectLanguageMismatch(code);
+      if (mismatchedLang) {
+        return { 
+          isValid: false, 
+          message: `This looks like ${mismatchedLang} code. JavaScript uses:\n` +
+                   `- console.log() for output\n` +
+                   `- let/const for variables\n` +
+                   `- Functions like: function foo() { } or const foo = () => { }\n` +
+                   `Example:\n` +
+                   `const name = "World";\n` +
+                   `console.log(\`Hello \${name}\`);`
+        };
+      }
+      
+      const hasJavaLikeSyntax = /System\.out\.print|public\s+class/.test(code);
+      const hasPythonSyntax = /^print\(|def\s+\w+\(|:\s*$/.test(code);
+      const hasCSyntax = /#include|printf\s*\(|int\s+main\s*\(/.test(code);
+      
+      if (hasJavaLikeSyntax || hasPythonSyntax || hasCSyntax) {
+        return { 
+          isValid: false, 
+          message: "This doesn't look like JavaScript. Remember:\n" +
+                  "- Use console.log() for output\n" +
+                  "- Variables use let/const, not types\n" +
+                  "- Functions use function keyword or arrow syntax\n" +
+                  "Example:\n" +
+                  "function greet(name) {\n" +
+                  "  console.log(`Hello ${name}`);\n" +
+                  "}\n" +
+                  "greet('World');"
+        };
+      }
+      
+      return { isValid: true, message: "" };
+    },
   };
 
-  const clearOutput = () => {
-    setOutput("");
-    setOutputStatus("idle");
+  const handleReactFileChange = (val) => {
+    setCode(val);
+    setReactFiles(files => ({ ...files, [activeFile]: val }));
   };
 
-  const renderEditor = () => {
-    if (language !== 1) {
-      return (
-        <textarea
-          placeholder={`// Write your ${
-            LANGUAGES.find((l) => l.id === language)?.name || ""
-          } code here...\n${language === 62 ? 'public class YourClassName {\n    public static void main(String[] args) {\n        \n    }\n}' : ''}`}
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck="false"
-        />
-      );
-    }
+  const handleHtmlFileChange = (val) => {
+    if (activeFile === "html") setHtmlCode(val);
+    if (activeFile === "css") setCssCode(val);
+    if (activeFile === "js") setJsCode(val);
+    setCode(val);
+  };
 
-    switch (activeFile) {
-      case "html":
-        return (
-          <textarea
-            value={htmlCode}
-            onChange={(e) => setHtmlCode(e.target.value)}
-            spellCheck="false"
-            placeholder="<!DOCTYPE html>
+  const getHtmlOutput = () => {
+    return `<!DOCTYPE html>
 <html>
 <head>
-  <title>Your Page</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Output</title>
+  <style>${cssCode}</style>
 </head>
 <body>
-  <!-- Your HTML content here -->
-</body>
-</html>"
-          />
-        );
-      case "css":
-        return (
-          <textarea
-            value={cssCode}
-            onChange={(e) => setCssCode(e.target.value)}
-            spellCheck="false"
-            placeholder="/* Your CSS styles here */
-body {
-  /* Example styles */
-}"
-          />
-        );
-      case "js":
-        return (
-          <textarea
-            value={jsCode}
-            onChange={(e) => setJsCode(e.target.value)}
-            spellCheck="false"
-            placeholder="// Your JavaScript code here
-function example() {
-  // Example function
-}"
-          />
-        );
-      default:
-        return null;
+  ${htmlCode.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, '')}
+  <script>
+    try {
+      ${jsCode}
+    } catch (error) {
+      console.error(error);
+      document.body.innerHTML += '<div style="color: red;">Error: ' + error.message + '</div>';
     }
+  </script>
+</body>
+</html>`;
+  };
+
+  const handleRun = async () => {
+    setIsLoading(true);
+    setOutput("Running...");
+    setTestResults([]);
+    setActiveTab("output");
+
+    if (languageValidators[language]) {
+      const validation = languageValidators[language](code);
+      if (!validation.isValid) {
+        setOutput(validation.message);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (language === "html") {
+      setDisplayedHtmlOutput(getHtmlOutput());
+      setIsLoading(false);
+      setOutput("HTML rendered successfully");
+      return;
+    }
+
+    if (language === "react") {
+      setIsLoading(false);
+      setOutput("React code saved. Preview updating...");
+      return;
+    }
+
+    try {
+      const cleanedInput = input
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .join("\n");
+      const res = await fetch("http://localhost:1234/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language, code, input: cleanedInput }),
+      });
+      const data = await res.json();
+      
+      if (data.error) {
+        setOutput(formatError(data.error, language));
+      } else {
+        setOutput(data.output || data.result || "No output");
+      }
+    } catch (err) {
+      setOutput("Connection error: " + err.message);
+    }
+    setIsLoading(false);
+  };
+
+  const addTestCase = () => {
+    setTestCases([...testCases, { 
+      id: Date.now(), 
+      input: "", 
+      expected: "" 
+    }]);
+  };
+
+  const updateTestCase = (id, field, value) => {
+    setTestCases(testCases.map(tc => 
+      tc.id === id ? { ...tc, [field]: value } : tc
+    ));
+  };
+
+  const removeTestCase = (id) => {
+    setTestCases(testCases.filter(tc => tc.id !== id));
+  };
+
+  const runTestCases = async () => {
+    if (!testCases.some(tc => tc.input.trim())) {
+      setTestResults([]);
+      setActiveTab("output");
+      setOutput("No test cases with input provided");
+      return;
+    }
+    
+    setIsLoading(true);
+    setTestResults([]);
+    setActiveTab("testCases");
+    
+    const results = [];
+    
+    for (const testCase of testCases) {
+      if (!testCase.input.trim()) continue;
+      
+      try {
+        const res = await fetch("http://localhost:1234/api/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            language, 
+            code, 
+            input: testCase.input 
+          }),
+        });
+        
+        const data = await res.json();
+        const actualOutput = data.error ? data.error : data.output || data.result || "No output";
+        
+        results.push({
+          input: testCase.input,
+          expected: testCase.expected,
+          actual: actualOutput,
+          status: testCase.expected ? 
+            (actualOutput.trim() === testCase.expected.trim() ? "pass" : "fail") 
+            : "no-expected"
+        });
+      } catch (err) {
+        results.push({
+          input: testCase.input,
+          expected: testCase.expected,
+          actual: "Connection error: " + err.message,
+          status: "error"
+        });
+      }
+    }
+    
+    setTestResults(results);
+    setIsLoading(false);
+  };
+
+  const sandpackFiles = {
+    "/App.js": reactFiles["App.js"],
+    "/index.js": reactFiles["index.js"],
+    "/package.json": reactFiles["package.json"],
+    "/styles.css": reactFiles["styles.css"],
+    "/index.html": reactFiles["index.html"],
+  };
+
+  const renderOutputSection = () => {
+    if (language === "react") {
+      return <ReactSandpackPlayground files={sandpackFiles} />;
+    }
+    
+    if (language === "html") {
+      return displayedHtmlOutput ? (
+        <iframe 
+          className="html-output" 
+          srcDoc={displayedHtmlOutput} 
+          title="HTML Output" 
+          sandbox="allow-scripts allow-modals allow-forms"
+          style={{ border: 'none', width: '100%', height: '100%', backgroundColor: 'white' }}
+        />
+      ) : (
+        <div className="output-placeholder">
+          Click "Run" to execute your HTML code
+        </div>
+      );
+    }
+    
+    return (
+      <div className="output-tabs">
+        <div className="tab-buttons">
+          <button 
+            className={activeTab === "output" ? "active" : ""}
+            onClick={() => setActiveTab("output")}
+          >
+            Output
+          </button>
+          <button 
+            className={activeTab === "testCases" ? "active" : ""}
+            onClick={() => setActiveTab("testCases")}
+          >
+            Test Cases
+          </button>
+        </div>
+        
+        {activeTab === "output" ? (
+          <pre className={`output-area ${output.startsWith("Error:") || output.includes("requires") ? "error" : ""}`}>
+            {output}
+          </pre>
+        ) : (
+          <div className="test-cases-container">
+            <div className="test-cases-actions">
+              <button 
+                onClick={runTestCases} 
+                disabled={isLoading || !testCases.some(tc => tc.input.trim())}
+                className={isLoading ? "loading" : ""}
+              >
+                {isLoading ? "Running..." : "Run All Test Cases"}
+              </button>
+            </div>
+            
+            <div className="test-cases-list">
+              {testCases.map((testCase) => (
+                <div key={testCase.id} className="test-case">
+                  <div className="test-case-input">
+                    <label>Input</label>
+                    <textarea
+                      value={testCase.input}
+                      onChange={(e) => updateTestCase(testCase.id, "input", e.target.value)}
+                      placeholder="Enter input (stdin)"
+                    />
+                  </div>
+                  <div className="test-case-expected">
+                    <label>Expected Output (optional)</label>
+                    <textarea
+                      value={testCase.expected}
+                      onChange={(e) => updateTestCase(testCase.id, "expected", e.target.value)}
+                      placeholder="Enter expected output"
+                    />
+                  </div>
+                  <button 
+                    className="remove-test-case"
+                    onClick={() => removeTestCase(testCase.id)}
+                    disabled={testCases.length <= 1}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              
+              <button className="add-test-case" onClick={addTestCase}>
+                + Add Test Case
+              </button>
+            </div>
+            
+            {testResults.length > 0 && (
+              <div className="test-results">
+                <h4>Test Results</h4>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Input</th>
+                      <th>Expected</th>
+                      <th>Actual</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testResults.map((result, index) => (
+                      <tr key={index}>
+                        <td className="input-cell">{result.input}</td>
+                        <td className="expected-cell">{result.expected || "-"}</td>
+                        <td className={`actual-cell ${result.status === "pass" ? "success" : 
+                                         result.status === "fail" ? "fail" : 
+                                         result.status === "error" ? "error" : ""}`}>
+                          {result.actual}
+                        </td>
+                        <td className="status-cell">
+                          {result.status === "pass" ? (
+                            <span className="status-pass">✅ Pass</span>
+                          ) : result.status === "fail" ? (
+                            <span className="status-fail">❌ Fail</span>
+                          ) : result.status === "error" ? (
+                            <span className="status-error">⚠️ Error</span>
+                          ) : (
+                            <span className="status-no-expected">↗️ No Expected</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="code-compiler">
-      <div className="sidebar">
+    <div className="compiler-main">
+      <aside className="sidebar">
+        <div className="sidebar-title">Files</div>
         {LANGUAGES.map((lang) => (
-          <div
+          <button
             key={lang.id}
-            className={`sidebar-item ${language === lang.id ? "active" : ""}`}
-            onClick={() => {
-              setLanguage(lang.id);
-              if (lang.id === 1) setActiveFile("html");
-            }}
+            className={`sidebar-btn${language === lang.id ? " active" : ""}`}
+            onClick={() => setLanguage(lang.id)}
             title={lang.name}
           >
             {lang.icon}
-          </div>
+          </button>
         ))}
-      </div>
+      </aside>
 
-      <div className="main-content">
-        <div className="header">
-          <h1>Excelr Code Compiler</h1>
-          <div className="theme-switch">
-            <button
-              className={theme === "light" ? "active" : ""}
-              onClick={() => toggleTheme("light")}
-            >
-              Light
-            </button>
-            <button
-              className={theme === "dark" ? "active" : ""}
-              onClick={() => toggleTheme("dark")}
-            >
-              Dark
-            </button>
+      <section className="editor-section">
+        {language === "react" && (
+          <div className="file-tabs">
+            {REACT_FILE_ORDER.map((file) => (
+              <div
+                key={file}
+                className={`file-tab${activeFile === file ? " active" : ""}`}
+                onClick={() => { setActiveFile(file); setCode(reactFiles[file]); }}
+              >
+                {file}
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+        {language === "html" && (
+          <div className="file-tabs">
+            {["html", "css", "js"].map((file) => (
+              <div
+                key={file}
+                className={`file-tab${activeFile === file ? " active" : ""}`}
+                onClick={() => setActiveFile(file)}
+              >
+                {file === "html" ? "index.html" : file === "css" ? "styles.css" : "script.js"}
+              </div>
+            ))}
+          </div>
+        )}
+        {language !== "react" && language !== "html" && (
+          <div className="file-tab single">{language.toUpperCase()}</div>
+        )}
 
-        <div className="toolbar">
-          <div className="language-select">
-            <select
-              value={language}
-              onChange={(e) => {
-                const newLang = parseInt(e.target.value);
-                setLanguage(newLang);
-                if (newLang === 1) setActiveFile("html");
-              }}
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.id} value={lang.id}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
+        {language === "react" ? (
+          <textarea 
+            key={`react-editor-${editorKey}`}
+            className="code-editor" 
+            value={code} 
+            onChange={e => handleReactFileChange(e.target.value)} 
+            spellCheck={false} 
+          />
+        ) : language === "html" ? (
+          activeFile === "html" ? (
+            <textarea 
+              key={`html-editor-${editorKey}`}
+              className="code-editor" 
+              value={htmlCode} 
+              onChange={e => handleHtmlFileChange(e.target.value)} 
+              spellCheck={false} 
+            />
+          ) : activeFile === "css" ? (
+            <textarea 
+              key={`css-editor-${editorKey}`}
+              className="code-editor" 
+              value={cssCode} 
+              onChange={e => handleHtmlFileChange(e.target.value)} 
+              spellCheck={false} 
+            />
+          ) : (
+            <textarea 
+              key={`js-editor-${editorKey}`}
+              className="code-editor" 
+              value={jsCode} 
+              onChange={e => handleHtmlFileChange(e.target.value)} 
+              spellCheck={false} 
+            />
+          )
+        ) : (
+          <textarea 
+            key={`${language}-editor-${editorKey}`}
+            className="code-editor" 
+            value={code} 
+            onChange={e => setCode(e.target.value)} 
+            spellCheck={false} 
+          />
+        )}
+
+        {language !== "html" && language !== "react" && (
+          <div className="input-container">
+            <textarea
+              placeholder="Optional stdin input (separate multiple inputs by newlines)..."
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              rows={4}
+              spellCheck={false}
+            />
           </div>
-          {language === 1 && (
-            <div className="file-tabs">
-              <button
-                className={activeFile === "html" ? "active" : ""}
-                onClick={() => setActiveFile("html")}
-              >
-                index.html
-              </button>
-              <button
-                className={activeFile === "css" ? "active" : ""}
-                onClick={() => setActiveFile("css")}
-              >
-                styles.css
-              </button>
-              <button
-                className={activeFile === "js" ? "active" : ""}
-                onClick={() => setActiveFile("js")}
-              >
-                script.js
-              </button>
-            </div>
-          )}
-          <button
-            className="run-button"
-            onClick={submitCode}
-            disabled={isLoading || !!validationError}
-          >
-            {isLoading ? (
-              <span className="loading-spinner"></span>
-            ) : (
-              <span>▶</span>
-            )}
-            Run Code
+        )}
+
+        <div className="editor-actions">
+          <button onClick={handleRun} disabled={isLoading}>
+            {isLoading ? "Running..." : "Run"}
+          </button>
+          <button className="theme-toggle" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+            {theme === "light" ? "🌙" : "☀️"}
           </button>
         </div>
+      </section>
 
-        <div className="workspace-container">
-          <div className="editor-container">
-            <div className="section-header">
-              <span>
-                {language === 1
-                  ? `Editor (${activeFile})`
-                  : "Editor"}
-              </span>
-            </div>
-            <div className="code-editor">
-              {renderEditor()}
-              {language !== 1 && (
-                <div className="input-section">
-                  <h4>Input (stdin):</h4>
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Enter program input here..."
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="output-container">
-            <div className="section-header">
-              <span>Output</span>
-              <button className="clear-button" onClick={clearOutput}>
-                Clear
-              </button>
-            </div>
-            <div className="output-content">
-              {validationError ? (
-                <pre className="output-pre error">{validationError}</pre>
-              ) : isLoading ? (
-                <div className="loading-state">
-                  <div className="spinner"></div>
-                  <p>Processing your code...</p>
-                </div>
-              ) : language === 1 && output ? (
-                <iframe
-                  title="output"
-                  srcDoc={output}
-                  sandbox="allow-scripts"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    backgroundColor: "white",
-                  }}
-                />
-              ) : (
-                <pre className={`output-pre ${outputStatus}`}>
-                  {output || "Your code output will appear here..."}
-                </pre>
-              )}
-            </div>
-          </div>
+      <section className="output-section">
+        <div className="output-title">Output</div>
+        <div className="output-container">
+          {renderOutputSection()}
         </div>
-      </div>
+      </section>
     </div>
   );
-}
-
-// A simple TextEncoder fallback for older browsers (Safari)
-class TextEncoderLite {
-  encode(string) {
-    let utftext = [];
-    for (let n = 0; n < string.length; n++) {
-      let charcode = string.charCodeAt(n);
-      if (charcode < 128) {
-        utftext.push(charcode);
-      } else if ((charcode > 127) && (charcode < 2048)) {
-        utftext.push((charcode >> 6) | 192);
-        utftext.push((charcode & 63) | 128);
-      } else {
-        utftext.push((charcode >> 12) | 224);
-        utftext.push(((charcode >> 6) & 63) | 128);
-        utftext.push((charcode & 63) | 128);
-      }
-    }
-    return utftext;
-  }
 }
