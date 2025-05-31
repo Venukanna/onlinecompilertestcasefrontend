@@ -484,7 +484,7 @@ public class ${className} {
         .split(/\r?\n/)
         .map(line => line.trim())
         .join("\n");
-      const res = await fetch("http://localhost:1234/api/execute", {
+      const res = await fetch("https://onlinecompilertestcasebackend.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language, code, input: cleanedInput }),
