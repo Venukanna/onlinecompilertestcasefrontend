@@ -1,52 +1,151 @@
- project Live link [ https://onlinecompilertestcasefrontend.vercel.app/]
- 
-Online Compiler with Test Case Support
-Try it live: https://onlinecompilertestcasefrontend.vercel.app
-View code: https://github.com/Venukanna/onlinecompilertestcasefrontend.git
+💻 Online Compiler with Test Case Support
+
+Live Demo: 🔗 https://onlinecompilertestcasefrontend.vercel.app
+
+Frontend Code: 💾 https://github.com/Venukanna/onlinecompilertestcasefrontend.git
+
+Backend Code: ⚙️ https://github.com/Venukanna/onlinecompilertestcasebackend.git
 
 ✨ About the Project
-This is a full-featured online code compiler that allows users to write, compile, and run code in multiple programming languages directly from the browser. It supports custom input and multiple test cases, making it perfect for coding practice, technical interviews, and learning new languages. The project’s goal is to provide a seamless, interactive coding experience with instant feedback and Docker-based backend execution for security and scalability.
+
+Online Compiler with Test Case Support is a web-based platform that allows users to write, compile, and execute code in multiple programming languages directly from their browser.
+
+It supports custom input, multiple test cases, and real-time output, making it ideal for coding practice, interviews, and learning.
+The backend runs securely inside Docker containers using a Java Spring Boot API for scalable and isolated code execution.
 
 🚀 Features
-Supports multiple languages (Java, C, C++, Python, JavaScript, etc.)
 
-Code editor with syntax highlighting (powered by CodeMirror)
+💡 Supports multiple languages — Java, C, C++, Python, JavaScript, etc.
 
-Input custom test cases and view output instantly
+🎨 Syntax-highlighted editor powered by CodeMirror
 
-User-friendly interface and real-time feedback
+⚙️ Run code with custom input and multiple test cases
 
-Docker-based secure execution (connects with a backend via API)
+🧩 Secure backend execution inside Docker
 
-Error handling and code execution limits for safe multi-user access
+⚡ Real-time result rendering via REST API
+
+🧠 Error handling and safe execution limits
+
+📱 Responsive, clean, and modern UI
 
 🛠️ Tech Stack
-Frontend: React.js, CodeMirror, CSS3, Axios
 
-Backend (API): (See separate backend repo, Docker, Node/Java API)
-
-Deployment: Vercel (Frontend), Docker containers (Backend)
+Frontend: React.js, CodeMirror, Axios, CSS3
+Backend: Java Spring Boot, Docker
+Deployment: Vercel (Frontend) | Render (Backend Docker Containers)
 
 🌐 Live Demo
-Check out the deployed app here:
-https://onlinecompilertestcasefrontend.vercel.app
 
-🧑‍💻 Getting Started
-To run locally:
+🚀 Try it now:
+👉 https://onlinecompilertestcasefrontend.vercel.app
 
-bash
+🧑‍💻 Getting Started (Run Locally with Docker)
+
+You can run the full project locally using Docker.
+Both the frontend and backend must run simultaneously.
+
+🧩 Step 1: Clone Both Repositories
+# Clone Frontend
 git clone https://github.com/Venukanna/onlinecompilertestcasefrontend.git
 cd onlinecompilertestcasefrontend
-npm install
-npm start
-By default, the frontend expects the compiler backend API URL to be set in the .env file.
 
-📦 Backend Service
-This frontend connects to a Docker-based code execution backend (not included in this repo).
-For the backend source and installation, see: [your-backend-repo-link-here]
+# Clone Backend
+git clone https://github.com/Venukanna/onlinecompilertestcasebackend.git
 
-📝 Contributing
-Pull requests and suggestions are welcome! Feel free to fork, improve UI/UX, or add language support.
+🐳 Step 2: Build and Run the Backend (Spring Boot + Docker)
+
+Make sure Docker Desktop (or Docker Engine) is running.
+
+Inside your backend folder, run:
+
+docker build -t online-compiler-backend .
+docker run -p 8080:8080 online-compiler-backend
+
+
+✅ This will:
+
+Build a Docker image for the Spring Boot backend
+
+Run it on port 8080
+
+Your backend API will be live at:
+👉 http://localhost:8080
+
+⚙️ Step 3: Configure Frontend Environment
+
+Inside your frontend folder, create a .env file:
+
+REACT_APP_API_URL=http://localhost:8080
+
+
+This tells the React app to connect to your local backend.
+
+🧱 Step 4: Build and Run the Frontend (React + Docker)
+
+Now, build and run the frontend using Docker:
+
+docker build -t online-compiler-frontend .
+docker run -p 3000:3000 online-compiler-frontend
+
+
+✅ The frontend will be available at:
+👉 http://localhost:3000
+
+🔗 Step 5: Test the Application
+
+Open http://localhost:3000
+ in your browser and test:
+
+Write your code in the editor
+
+Add custom input/test cases
+
+Click Run Code → output appears instantly via backend API
+
+Make sure both containers (frontend + backend) are running.
+
+🧰 Optional: Use Docker Compose (Recommended)
+
+You can create a docker-compose.yml file in the root directory to run both containers with one command.
+
+version: '3'
+services:
+  backend:
+    build: ./onlinecompilertestcasebackend
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./onlinecompilertestcasefrontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+
+
+Then simply run:
+
+docker-compose up --build
+
+
+✅ Both services will start together.
+
+📦 Backend Details
+
+The Spring Boot backend handles:
+
+Code execution using Docker containers
+
+Test case validation
+
+Resource/time limits
+
+Error-safe compilation environment
+
+Backend repo:
+🔗 https://github.com/Venukanna/onlinecompilertestcasebackend.git
+
 
 📫 Contact
-For feedback or collaboration, reach out via LinkedIn or open an issue.
+Mail: Venu996366@gmail.com
