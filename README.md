@@ -1,6 +1,9 @@
 💻 Online Compiler with Test Case Support
 
-Live Demo: 🔗 https://onlinecompilertestcasefrontend.vercel.app
+Live Demo (UI Only): 🔗 https://onlinecompilertestcasefrontend.vercel.app
+
+⚠️ Note: Code execution feature requires Docker and works in local environment only.
+Please refer to the setup instructions below or demo video for full functionality.
 
 Frontend Code: 💾 https://github.com/Venukanna/onlinecompilertestcasefrontend.git
 
