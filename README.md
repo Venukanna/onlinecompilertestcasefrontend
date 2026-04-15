@@ -4,13 +4,15 @@ Live Demo (UI Only): 🔗 https://onlinecompilertestcasefrontend.vercel.app
 
 📌 Important Note
 
+The frontend (HTML, CSS, and React.js) is fully functional and accessible in the live demo.
+
 Due to limitations of free hosting platforms (no Docker support), the code execution feature is not available in the live demo.
 
 However, the full functionality works perfectly in the local environment using Docker containers.
 
-Frontend Code: 💾 https://github.com/Venukanna/onlinecompilertestcasefrontend.git
+Frontend Code: 💾 https://github.com/Venukanna/onlinecompilertestcasefrontend
 
-Backend Code: ⚙️ https://github.com/Venukanna/onlinecompilertestcasebackend.git
+Backend Code: ⚙️ https://github.com/Venukanna/onlinecompilertestcasebackend
 
 ✨ About the Project
 
